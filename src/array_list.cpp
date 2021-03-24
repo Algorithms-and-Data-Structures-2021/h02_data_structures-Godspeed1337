@@ -12,12 +12,19 @@ ArrayList::ArrayList(int capacity) : capacity_{capacity} {
   if (capacity <= 0) {
     throw std::invalid_argument("ArrayList::capacity must be positive");
   }
-
+  data_ = new Element [capacity_];
+  std::fill(data_, data_ + capacity_, Element::UNINITIALIZED);
   // Tip 1: используйте std::fill для заполнения выделенных ячеек массива значением Element::UNINITIALIZED
   // здесь должен быть ваш код ...
 }
 
 ArrayList::~ArrayList() {
+  if (data_ != nullptr) {
+    delete[] data_;
+    data_ = nullptr;
+  }
+  size_ = 0;
+  capacity_ = 0;
   // Tip 1: высвободите выделенную память
   // Tip 2: не забудьте про логическую целостность объекта (инвариантность)
 }
@@ -25,23 +32,34 @@ ArrayList::~ArrayList() {
 void ArrayList::Add(Element e) {
   // Tip 1: используйте метод resize(new_capacity) для расширения емкости массива
   // здесь должен быть ваш код ...
-
+  if (size_ == capacity_) {
+    ArrayList::resize(capacity_ + kCapacityGrowthCoefficient);
+  }
   assert(size_ < capacity_);  // я здесь, чтобы не дать тебе сойти с правильного пути
-
+  data_[size_] = e;
+  size_ += 1;
   // напишите свой код после расширения емкости массива здесь ...
 }
 
 void ArrayList::Insert(int index, Element e) {
-  if (index != 0 && index != size_) {
+  if (index != size_) {
     // index = 0 и index == size это особые случаи, при которых всегда можно выполнить операцию вставки
     internal::check_out_of_range(index, 0, size_);
   }
-
+  else {
+    ArrayList::Add(e);
+    return;
+  }
+  if (size_ == capacity_){
+    ArrayList::resize (capacity_ + kCapacityGrowthCoefficient);
+  }
   // Tip 1: используйте метод resize(new_capacity) для расширения емкости массива
   // напишите свой код здесь ...
 
   assert(size_ < capacity_);  // я ни в коем случае не дам вам совершить ошибку всей вашей жизни
-
+  std::copy(data_ + index, data_ + size_, data_ + index + 1);
+  data_[index] = e;
+  size_ += 1;
   // Tip 2: для свдига элементов вправо можете использовать std::copy
   // напишите свой код после расширения емкости массива здесь ...
 }
@@ -49,6 +67,7 @@ void ArrayList::Insert(int index, Element e) {
 void ArrayList::Set(int index, Element value) {
   internal::check_out_of_range(index, 0, size_);
   // напишите свой код здесь ...
+  data_[index] = value;
 }
 
 Element ArrayList::Remove(int index) {
@@ -57,23 +76,34 @@ Element ArrayList::Remove(int index) {
   // Tip 1: можете использовать std::copy для сдвига элементов влево
   // Tip 2: не забудьте задать значение Element::UNINITIALIZED освободившейся ячейке
   // напишите свой код здесь ...
-  return {};
+  Element elem = data_[index];
+  std::copy(data_ + index + 1, data_ + size_, data_ + index);
+  size_ -= 1;
+  data_[size_] = Element::UNINITIALIZED;
+
+  return elem;
 }
 
 void ArrayList::Clear() {
   // Tip 1: можете использовать std::fill для заполнения ячеек массива значением  Element::UNINITIALIZED
   // напишите свой код здесь ...
+  std::fill(data_, data_ + size_, Element::UNINITIALIZED);
+  size_ = 0;
 }
 
 Element ArrayList::Get(int index) const {
   internal::check_out_of_range(index, 0, size_);
   // напишите свой код здесь ...
-  return {};
+  return data_[index];
 }
 
 int ArrayList::IndexOf(Element e) const {
   // напишите свой код здесь ...
-  return {};
+  for (int i = 0; i < size_; i++) {
+    if (data_[i] == e)
+      return i;
+  }
+  return -1;
 }
 
 // === РЕАЛИЗОВАНО ===
@@ -107,16 +137,16 @@ void ArrayList::resize(int new_capacity) {
   assert(new_capacity > capacity_);  // не ошибается тот, кто ничего не делает ...
 
   // 1. выделяем новый участок памяти
-  auto new_data = new Element[capacity_];
+  auto new_data = new Element[new_capacity];
 
   // 2. копируем данные на новый участок
-  std::copy(data_, data_ + size_ - 1, new_data);
+  std::copy(data_, data_ + size_, new_data);
 
   // 3. заполняем "свободные" ячейки памяти значением Element::UNINITIALIZED
   std::fill(new_data + size_, new_data + new_capacity, Element::UNINITIALIZED);
 
   // 4. высвобождаем старый участок памяти меньшего размера
-  delete data_;
+  delete[] data_;
 
   // 5. пересылаем указатель на новый участок памяти
   data_ = new_data;
